@@ -66,6 +66,181 @@ composer install
 }
 ```
 
+## Claude Code（CLI）での設定
+
+Claude Code（コマンドラインツール）でこのMCPサーバーを使用する方法です。
+
+### 設定ファイルの種類と配置場所
+
+Claude Codeは複数のスコープで設定を管理できます：
+
+| スコープ | 配置場所 | 用途 | Git共有 |
+|---------|---------|------|--------|
+| User（ユーザー） | `~/.claude.json` | 全プロジェクト共通の個人設定 | × |
+| Project（プロジェクト） | `.mcp.json` | チームで共有する設定 | ○ |
+| Local（ローカル） | `~/.claude.json`内のprojects設定 | プロジェクト固有の個人設定 | × |
+
+**優先順位**: Local > Project > User（Localが最優先）
+
+### 方法1: コマンドで設定（推奨）
+
+#### ユーザースコープ（全プロジェクト共通）
+
+```bash
+claude mcp add eccube \
+  -e ECCUBE_ROOT=/path/to/ec-cube \
+  -e APP_ENV=prod \
+  -e APP_DEBUG=0 \
+  -- php /path/to/ec-cube/mcp-server/server.php
+```
+
+#### プロジェクトスコープ（チーム共有）
+
+EC-CUBEプロジェクトのルートディレクトリで実行：
+
+```bash
+cd /path/to/ec-cube
+
+claude mcp add eccube --scope project \
+  -e ECCUBE_ROOT=. \
+  -e APP_ENV=prod \
+  -e APP_DEBUG=0 \
+  -- php ./mcp-server/server.php
+```
+
+これにより `.mcp.json` がプロジェクトルートに作成されます。
+
+### 方法2: 設定ファイルを直接編集
+
+#### ユーザースコープ: `~/.claude.json`
+
+```json
+{
+  "mcpServers": {
+    "eccube": {
+      "command": "php",
+      "args": ["/path/to/ec-cube/mcp-server/server.php"],
+      "env": {
+        "ECCUBE_ROOT": "/path/to/ec-cube",
+        "APP_ENV": "prod",
+        "APP_DEBUG": "0"
+      }
+    }
+  }
+}
+```
+
+#### プロジェクトスコープ: `.mcp.json`（EC-CUBEルートに配置）
+
+```json
+{
+  "mcpServers": {
+    "eccube": {
+      "command": "php",
+      "args": ["./mcp-server/server.php"],
+      "env": {
+        "ECCUBE_ROOT": ".",
+        "APP_ENV": "prod",
+        "APP_DEBUG": "0"
+      }
+    }
+  }
+}
+```
+
+### 方法3: プロジェクト固有の個人設定（ローカルスコープ）
+
+チーム共有の設定とは別に、個人用の設定を追加したい場合は `~/.claude.json` 内でプロジェクト単位の設定ができます：
+
+```json
+{
+  "mcpServers": {
+    // ユーザースコープ（全プロジェクト共通）
+  },
+  "projects": {
+    "/path/to/ec-cube": {
+      "mcpServers": {
+        "eccube": {
+          "command": "php",
+          "args": ["./mcp-server/server.php"],
+          "env": {
+            "ECCUBE_ROOT": ".",
+            "APP_ENV": "dev",
+            "APP_DEBUG": "1"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+### 設定の確認
+
+現在の設定を確認するには：
+
+```bash
+claude mcp list
+```
+
+### チームでの共有手順
+
+1. **`.mcp.json`をGitに追加**
+   ```bash
+   git add .mcp.json
+   git commit -m "Add Claude Code MCP configuration"
+   ```
+
+2. **チームメンバーがクローン後に実行**
+   ```bash
+   git pull
+   cd mcp-server
+   composer install
+   ```
+
+   `.mcp.json`が自動的に読み込まれます。
+
+### その他のプロジェクト設定ファイル
+
+Claude Codeは `.claude/` ディレクトリ内にも設定ファイルを配置できます：
+
+| ファイル | 用途 | Git共有 |
+|---------|------|--------|
+| `.claude/settings.json` | 権限、環境変数、ツール設定 | ○ |
+| `.claude/settings.local.json` | 個人的なオーバーライド | × (gitignored) |
+| `.claude/CLAUDE.md` | プロジェクトのコンテキスト情報 | ○ |
+
+#### `.claude/settings.json` の例
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "mcp__eccube__get_product",
+      "mcp__eccube__search_products",
+      "mcp__eccube__get_order"
+    ]
+  },
+  "env": {
+    "APP_ENV": "prod"
+  }
+}
+```
+
+#### `.claude/CLAUDE.md` の例
+
+```markdown
+# EC-CUBE プロジェクト
+
+このプロジェクトはEC-CUBE 4を使用したECサイトです。
+
+## MCPサーバーの使い方
+
+- 商品情報の取得: `get_product`, `search_products`
+- 受注情報の取得: `get_order`, `search_orders`
+- 売上レポート: `get_today_summary`, `get_sales_summary`
+```
+
 ## 利用可能なツール
 
 ### 商品関連
