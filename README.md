@@ -8,18 +8,6 @@
 - EC-CUBE 4.3 with [McpApi plugin](https://github.com/kurozumi/eccube-plugin-mcpapi) installed
 - API key created in EC-CUBE admin panel
 
-## Installation
-
-```bash
-npm install -g eccube-mcp-server
-```
-
-Or use npx (no installation required):
-
-```bash
-npx eccube-mcp-server
-```
-
 ## Setup
 
 ### 1. Install McpApi Plugin
@@ -33,7 +21,18 @@ Install the [McpApi plugin](https://github.com/kurozumi/eccube-plugin-mcpapi) on
 3. Enter a name and select permissions
 4. Click "Register" and copy the generated API key
 
-### 3. Configure Claude Code
+### 3. Install MCP Server
+
+Clone this repository to your local machine:
+
+```bash
+git clone https://github.com/kurozumi/eccube-mcp-server.git
+cd eccube-mcp-server
+npm install
+npm run build
+```
+
+### 4. Configure Claude Code
 
 Add to `~/.claude/claude_code_config.json`:
 
@@ -41,7 +40,8 @@ Add to `~/.claude/claude_code_config.json`:
 {
   "mcpServers": {
     "eccube": {
-      "command": "eccube-mcp-server",
+      "command": "node",
+      "args": ["/path/to/eccube-mcp-server/dist/index.js"],
       "env": {
         "ECCUBE_BASE_URL": "https://your-shop.com",
         "ECCUBE_API_KEY": "your_api_key"
@@ -51,24 +51,12 @@ Add to `~/.claude/claude_code_config.json`:
 }
 ```
 
-Or using npx:
+Replace:
+- `/path/to/eccube-mcp-server` with the actual path where you cloned the repository
+- `https://your-shop.com` with your EC-CUBE store URL
+- `your_api_key` with the API key from step 2
 
-```json
-{
-  "mcpServers": {
-    "eccube": {
-      "command": "npx",
-      "args": ["eccube-mcp-server"],
-      "env": {
-        "ECCUBE_BASE_URL": "https://your-shop.com",
-        "ECCUBE_API_KEY": "your_api_key"
-      }
-    }
-  }
-}
-```
-
-### 4. Restart Claude Code
+### 5. Restart Claude Code
 
 After configuration, restart Claude Code to load the MCP server.
 
@@ -99,6 +87,22 @@ After configuration, restart Claude Code to load the MCP server.
 |----------|----------|-------------|
 | `ECCUBE_BASE_URL` | Yes | EC-CUBE store URL (e.g., `https://your-shop.com`) |
 | `ECCUBE_API_KEY` | Yes | API key from EC-CUBE admin panel |
+
+## Architecture
+
+```
+Your PC (Local)
+├── Claude Code
+└── MCP Server (this repository)
+        │
+        │ HTTP API
+        ▼
+EC-CUBE Server (Remote)
+└── McpApi Plugin
+    └── /mcp/api/v1/products
+```
+
+The MCP Server runs on your local machine and communicates with your EC-CUBE store via HTTP API.
 
 ## Related
 
